@@ -1,4 +1,4 @@
-RocketChat.OTR = new (class {
+class OTR {
 	constructor() {
 		this.enabled = new ReactiveVar(false);
 		this.instancesByRoomId = {};
@@ -10,7 +10,7 @@ RocketChat.OTR = new (class {
 
 	getInstanceByRoomId(roomId) {
 		var enabled, subscription;
-		subscription = ChatSubscription.findOne({
+		subscription = RocketChat.models.Subscriptions.findOne({
 			rid: roomId
 		});
 		if (!subscription) {
@@ -30,7 +30,9 @@ RocketChat.OTR = new (class {
 		}
 		return this.instancesByRoomId[roomId];
 	}
-})();
+}
+
+RocketChat.OTR = new OTR();
 
 Meteor.startup(function() {
 	RocketChat.Notifications.onUser('otr', (type, data) => {
@@ -46,6 +48,7 @@ Meteor.startup(function() {
 			return RocketChat.OTR.instancesByRoomId[message.rid].encrypt(message.msg)
 			.then((msg) => {
 				message.msg = msg;
+				message.t = 'otr';
 				return message;
 			});
 		} else {
@@ -56,16 +59,27 @@ Meteor.startup(function() {
 	RocketChat.promises.add('onClientMessageReceived', function(message) {
 		if (message.rid && RocketChat.OTR.instancesByRoomId && RocketChat.OTR.instancesByRoomId[message.rid] && RocketChat.OTR.instancesByRoomId[message.rid].established.get()) {
 			if (message.notification) {
-				message.msg = t("Encrypted_message");
+				message.msg = t('Encrypted_message');
 				return Promise.resolve(message);
 			} else {
 				return RocketChat.OTR.instancesByRoomId[message.rid].decrypt(message.msg)
-				.then((msg) => {
+				.then((data) => {
+					const {msg, ack} = data;
 					message.msg = msg;
+
+					if (!message.otrAck) {
+						RocketChat.OTR.instancesByRoomId[message.rid].encrypt(ack)
+						.then((ack) => {
+							Meteor.call('updateOTRAckAndType', message._id, ack);
+						});
+					}
 					return message;
-				})
+				});
 			}
 		} else {
+			if (message.t === 'otr' || message.t === 'otr-ack') {
+				message.msg = '';
+			}
 			return Promise.resolve(message);
 		}
 	}, RocketChat.promises.priority.HIGH);
