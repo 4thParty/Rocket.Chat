@@ -97,7 +97,9 @@
         "swal"        : true,
         "t"           : true,
         "TAPi18n"     : true,
+        "Template"    : true,
         "toastr"      : true,
-        "Tracker"     : true
+        "Tracker"     : true,
+        "TimeSync"    : true
     }
 }
