@@ -426,6 +426,17 @@ Template.room.events
 		ChatMessage.update {_id: this._arguments[1]._id, 'urls.url': $(event.currentTarget).data('url')}, {$set: {'urls.$.downloadImages': true}}
 		ChatMessage.update {_id: this._arguments[1]._id, 'attachments.image_url': $(event.currentTarget).data('url')}, {$set: {'attachments.$.downloadImages': true}}
 
+	'click .collapse-switch': (e) ->
+		index = $(e.currentTarget).data('index')
+		collapsed = $(e.currentTarget).data('collapsed')
+		id = @_arguments[1]._id
+
+		if @_arguments[1]?.attachments?
+			ChatMessage.update {_id: id}, {$set: {"attachments.#{index}.collapsed": !collapsed}}
+
+		if @_arguments[1]?.urls?
+			ChatMessage.update {_id: id}, {$set: {"urls.#{index}.collapsed": !collapsed}}
+
 	'dragenter .dropzone': (e) ->
 		e.currentTarget.classList.add 'over'
 
