@@ -257,6 +257,17 @@ RocketChat.models.Messages = new class extends RocketChat.models._Base
 
 		return @update query, update, { multi: true }
 
+	setMessageAttachments: (_id, attachments) ->
+		query =
+			_id: _id
+
+		update =
+			$set:
+				attachments: attachments
+		console.log(query, update);
+		return @update query, update
+
+
 	# INSERT
 	createWithTypeRoomIdMessageAndUser: (type, roomId, message, user, extraData) ->
 		record =
@@ -316,6 +327,14 @@ RocketChat.models.Messages = new class extends RocketChat.models._Base
 	createOwnerRemovedWithRoomIdAndUser: (roomId, user, extraData) ->
 		message = user.username
 		return @createWithTypeRoomIdMessageAndUser 'owner-removed', roomId, message, user, extraData
+
+	createSubscriptionRoleAddedWithRoomIdAndUser: (roomId, user, extraData) ->
+		message = user.username
+		return @createWithTypeRoomIdMessageAndUser 'subscription-role-added', roomId, message, user, extraData
+
+	createSubscriptionRoleRemovedWithRoomIdAndUser: (roomId, user, extraData) ->
+		message = user.username
+		return @createWithTypeRoomIdMessageAndUser 'subscription-role-removed', roomId, message, user, extraData
 
 	# REMOVE
 	removeById: (_id) ->
