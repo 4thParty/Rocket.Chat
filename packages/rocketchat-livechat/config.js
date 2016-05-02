@@ -6,12 +6,17 @@ Meteor.startup(function() {
 	RocketChat.settings.add('Livechat_registration_form', true, { type: 'boolean', group: 'Livechat', public: true, i18nLabel: 'Show_preregistration_form' });
 	RocketChat.settings.add('Livechat_guest_count', 1, { type: 'int', group: 'Livechat' });
 
+	RocketChat.settings.add('Livechat_Room_Count', 1, {
+		type: 'int',
+		group: 'Livechat'
+	});
+
 	RocketChat.settings.add('Livechat_Knowledge_Enabled', false, {
 		type: 'boolean',
 		group: 'Livechat',
 		section: 'Knowledge Base',
 		public: true,
-		i18nLabel: 'Knowledge_Enabled'
+		i18nLabel: 'Enabled'
 	});
 
 	RocketChat.settings.add('Livechat_Knowledge_Apiai_Key', '', {
