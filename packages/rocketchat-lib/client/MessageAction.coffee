@@ -111,28 +111,8 @@ Meteor.startup ->
 			message = @_arguments[1]
 			msg = $(event.currentTarget).closest('.message')[0]
 			$("\##{msg.id} .message-dropdown").hide()
-			return if msg.classList.contains("system")
-			swal {
-				title: t('Are_you_sure')
-				text: t('You_will_not_be_able_to_recover')
-				type: 'warning'
-				showCancelButton: true
-				confirmButtonColor: '#DD6B55'
-				confirmButtonText: t('Yes_delete_it')
-				cancelButtonText: t('Cancel')
-				closeOnConfirm: false
-				html: false
-			}, ->
-				swal
-					title: t('Deleted')
-					text: t('Your_entry_has_been_deleted')
-					type: 'success'
-					timer: 1000
-					showConfirmButton: false
 
-				if chatMessages[Session.get('openedRoom')].editing.id is message._id
-					chatMessages[Session.get('openedRoom')].clearEditing(message)
-				chatMessages[Session.get('openedRoom')].deleteMsg(message)
+			chatMessages[Session.get('openedRoom')].confirmDeleteMsg(message)
 		validation: (message) ->
 			hasPermission = RocketChat.authz.hasAtLeastOnePermission('delete-message', message.rid)
 			isDeleteAllowed = RocketChat.settings.get 'Message_AllowDeleting'
@@ -182,3 +162,40 @@ Meteor.startup ->
 			$(event.currentTarget).attr('data-clipboard-text', message)
 			toastr.success(TAPi18n.__('Copied'))
 		order: 4
+
+	RocketChat.MessageAction.addButton
+		id: 'quote-message'
+		icon: 'icon-quote-left'
+		i18nLabel: 'Quote'
+		context: [
+			'message'
+			'message-mobile'
+		]
+		action: (event, instance) ->
+			m = @_arguments[1]
+			message = m.msg
+			msg = $(event.currentTarget).closest('.message')[0]
+			$("\##{msg.id} .message-dropdown").hide()
+			zpad = (n) ->
+				result = n.toString()
+				if result.length > 1
+					return result
+				else
+					return '0' + result
+			ts = zpad(m.ts.getUTCHours()) + ':' + zpad(m.ts.getUTCMinutes()) + ' UTC'
+			now = new Date
+			if (now.getUTCFullYear() isnt m.ts.getUTCFullYear() or
+			    now.getUTCMonth() isnt m.ts.getUTCMonth() or
+			    now.getUTCDate() isnt m.ts.getUTCDate())
+				ts = m.ts.getUTCFullYear() + '-' + zpad(m.ts.getUTCMonth()) + '-' + zpad(m.ts.getUTCDate()) + ' ' + ts
+			input = instance.find('.input-message')
+			text = input.value
+			if text
+				text += '\n'
+			text += '@' + m.u.username + ' said (' + ts + '):\n'
+			for line in message.split(/\r\n|\r|\n/)
+				text += '> ' + line + '\n'
+			input.value = text
+			input.focus()
+			$(input).keyup()
+		order: 5
