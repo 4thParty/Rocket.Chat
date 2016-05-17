@@ -89,6 +89,12 @@ Template.visitorInfo.helpers({
 				instance.editing.set(false);
 			}
 		};
+	},
+
+	roomOpen() {
+		const room = ChatRoom.findOne({ _id: this.rid });
+
+		return room.open;
 	}
 });
 
@@ -106,36 +112,36 @@ Template.visitorInfo.events({
 			type: 'input',
 			inputPlaceholder: t('Please_add_a_comment'),
 			showCancelButton: true,
-			// confirmButtonColor: '#DD6B55',
-			// confirmButtonText: t('Yes'),
-			// cancelButtonText: t('Cancel'),
 			closeOnConfirm: false
-		}, () => {
-			swal({
-				title: t('Chat_closed'),
-				text: t('Chat_closed_successfully'),
-				type: 'success',
-				timer: 1000,
-				showConfirmButton: false
+		}, (inputValue) => {
+			if (!inputValue) {
+				swal.showInputError(t('Please_add_a_comment_to_close_the_room'));
+				return false;
+			}
+
+			if (s.trim(inputValue) === '') {
+				swal.showInputError(t('Please_add_a_comment_to_close_the_room'));
+				return false;
+			}
+
+			Meteor.call('livechat:closeRoom', this.rid, inputValue, function(error/*, result*/) {
+				if (error) {
+					return handleError(error);
+				}
+				swal({
+					title: t('Chat_closed'),
+					text: t('Chat_closed_successfully'),
+					type: 'success',
+					timer: 1000,
+					showConfirmButton: false
+				});
 			});
-			// Meteor.call('livechat:removeDepartment', this._id, function(error/*, result*/) {
-			// 	if (error) {
-			// 		return handleError(error);
-			// 	}
-			// 	swal({
-			// 		title: t('Removed'),
-			// 		text: t('Department_removed'),
-			// 		type: 'success',
-			// 		timer: 1000,
-			// 		showConfirmButton: false
-			// 	});
-			// });
 		});
 	}
 });
 
 Template.visitorInfo.onCreated(function() {
-	this.visitorToken = new ReactiveVar(null);
+	this.visitorId = new ReactiveVar(null);
 	this.customFields = new ReactiveVar([]);
 	this.editing = new ReactiveVar(false);
 	this.user = new ReactiveVar();
@@ -150,18 +156,18 @@ Template.visitorInfo.onCreated(function() {
 
 	if (currentData && currentData.rid) {
 		this.autorun(() => {
-			var room = ChatRoom.findOne(currentData.rid);
-			if (room && room.v && room.v.token) {
-				this.visitorToken.set(room.v.token);
+			let room = ChatRoom.findOne(currentData.rid);
+			if (room && room.v && room.v._id) {
+				this.visitorId.set(room.v._id);
 			} else {
-				this.visitorToken.set();
+				this.visitorId.set();
 			}
 		});
 
-		this.subscribe('livechat:visitorInfo', currentData.rid);
+		this.subscribe('livechat:visitorInfo', { rid: currentData.rid });
 	}
 
 	this.autorun(() => {
-		this.user.set(Meteor.users.findOne({ 'profile.token': this.visitorToken.get() }));
+		this.user.set(Meteor.users.findOne({ '_id': this.visitorId.get() }));
 	});
 });

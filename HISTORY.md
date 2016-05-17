@@ -1,6 +1,135 @@
 ## NEXT
 
+## 0.31.0, 2016-May-16
+
+- Add header and footer to e-mails
+- Add new livechat settings to livechat manager
+- Add replyTo and more descriptive 'from' to livechat offline email
+- Add role field to user creation form
+- Add setting to set Google Site Verification id
+- Add the channel id to the _id property of the messages on import
+- Added permalink button to pinned & starred messages
+- Better look to big emojis on webkit browsers
+- Created guest user permission
+- Emoji search is performed across all categories
+- Fix an error on importing if there was a user by the same username on the server but different email
+- Fix error message when CAS validation fail
+- Fix multiline code when there is text after closing ```
+- Fix some broken link -> button events
+- Fix text clipping in spotlight input
+- Fix the message requesting the password when saving profile
+- Fix URL for cordova  when quoting a message
+- Lower highlight timeout
+- Make "new message" and "jump to recent" buttons unselectable
+- Make the sidebar movement transition faster
+- New subject for livechat offline messages
+- Prevent someone from reacting if they are muted
+- Remove invalid push tokens from gateway if status code 406
+- Remove stale debug logs
+- Removing presence status computation from new room sound tracker
+- Right sidebar animation cancelled on tab button clicked
+- Save room's name as the livechat visitor name
+- Use HTML emails instead of Text- 
+
+## 0.30.0, 2016-May-09
+
+- Ability to run imports several times without duplicate messages (#3123)
+- Add /shrug command
+- Add /topic
+- Add back the role bot to rocket.cat - closes #3098
+- Add default email header and footer
+- Add some basic validation to if user is logged in
+- Add timestamp to quoted messages
+- Added quote button to messages
+- Allow inputing multiple channels/users in integrations; comma-separated
+- Allow katex to work with $...$ and $$...$$
+- Always set SMS info on incoming SMS messages
+- Close #3103 Show correct menus on mobile
+- Do not allow user leave the room ONLY if it is a livechat room
+- Do not protect upload files on Sandstorm environment
+- Don't render empty katex
+- Don't show emoji list on ':' or ascii
+- Easier whole message navigation
+- Feature: search input field in emoji picker
+- Fix #2941 Pressing enter in Search Channels leaves search (#3128)
+- Fix #3103 Show correct menus on mobile
+- Fix #3130 Hide "edited by" status in search results
+- Fix #3138 Embedding youtu.be shortened links did not have a video preview
+- Fix #3148 Also adds missing translation keys
+- Fix #3182 Replace placeholder in enrollment email subject
+- Fix current livechats page
+- Fix livechat build script for Windows
+- Fix read messages from livechat rooms
+- Fix unread bar links
+- Fix: discarding draft gets up to date content of message
+- Force outgoing webhooks to post only on the allowed room
+- Ignore the __MACOSX folders in the importers
+- Improves message quoting
+- Make message box resize when editing message using popup menu
+- Message box resizes properly if sent via click event
+- Move /me into directory structure like the other slashcommands
+- New livechat page to send an email when no agent online
+- New message editing features
+- New permission to allow others to close livechat rooms
+- Prevent unnecessary UI resize on medium screens
+- Removed unused hubot scripts
+- Replace bunches of inaccessible <a> elements with empty hrefs, and clickable divs, with <button/>.
+- RTL fixes (#3135)
+- Update katex to version 0.6.0
+- Use customClass instead of looking for a class
+- Use native code to set file upload cookies
+- Wait until user is logged-in to add message listener
+
+## 0.29.0, 2016-May-02
+
+- Add a i18nDefaultQuery option to settings
+- Add a sequential code for livechat rooms
+- Add ability to close livechat rooms
+- Add APIs to display room name and find the room object
+- Add Beta indicators to video calling
+- Add livechat custom fields queue
+- Add customization options for enrollment and invitation e-mails
+- Add support for RegExp in the message search
+- Added settings.json example for Galaxy
+- Adding draft auto translations script
+- Adding CODE OF CONDUCT
+- Adding copy to mesage clipboard button
+- Automatic language detect on code blocks
+- Change Users.setEmail to overwrite emails field
+- Close #2727 Change meteor error (#3040)
+- Close #3049 Fix permalink preview
+- Create settings to select internal hubot scripts to load
+- Emoji's by themselves appear 2x as large. (#3072)
+- Feature to add permission for user to manage their own integrations only. (#2901)
+- Fix #3094 Enables favorite rooms to non-admins
+- Fix #782 Swipe with flex panel breaks
+- Fix code highlight on code that contains delimiter
+- Fix for markdown heading of non Latin characters
+- Fix getRoomIdByNameOrId to allow getting id from joined room
+- Fix iframe_client.js "loggin-with-token" typo
+- Fix livechat not saving OS, browser and IP
+- Fix missing parameters in loginWithCas. (#3051)
+- Fix new-message notification when on a different room
+- Fix permalink query in oembed (#3046)
+- Fix OTR settings labels
+- Internal Hubot naming clarification rocketchat:hubot -> rocketchat:internal-hubot RocketBot -> InternalHubot RocketBot_Name -> InternalHubot_Username
+- Add Katex formatting tip (#3066)
+- Limit calling addUserToRoom to users in room and with permission.
+- Make livechat client app use less CPU
+- Move livechat navigation history to another tab bar panel
+- Move subscription from all clients to template creation
+- Remove all spaces from ignored hosts setting
+- Remove scripts from internal-bot and set defaults to hello and zen
 - Remove unused options parameter from sendMessage
+- Remove unused translations
+- Restrict calling getRoomIdByNameOrId to channels and allowed users
+- Save extra info to livechat rooms and guests
+- Show previous livechats for each guest
+- Split Autolinker URLs settings
+- Update to kenton:accounts-sandstorm@0.3.0
+- Use guest user name if already registered
+- Use new placholders.js for sending mail through Mailer
+- Verify if user's emails and phone are arrays before showing them
 
 ## 0.28.0, 2016-Apr-25
 

@@ -38,12 +38,14 @@ onDeleteMessageStream = (msg) ->
 	ChatMessage.remove _id: msg._id
 
 
-RocketChat.Notifications.onUser 'message', (msg) ->
-	msg.u =
-		username: 'rocketbot'
-	msg.private = true
+Tracker.autorun ->
+	if Meteor.userId()
+		RocketChat.Notifications.onUser 'message', (msg) ->
+			msg.u =
+				username: 'rocketbot'
+			msg.private = true
 
-	ChatMessage.upsert { _id: msg._id }, msg
+			ChatMessage.upsert { _id: msg._id }, msg
 
 
 @RoomManager = new class
@@ -86,9 +88,8 @@ RocketChat.Notifications.onUser 'message', (msg) ->
 		for typeName, record of openedRooms when record.active is true
 			do (typeName, record) ->
 
-				username = Meteor.user()?.username
-
-				unless username
+				user = Meteor.user()
+				unless user?.username
 					return
 
 				record.sub = [
@@ -104,15 +105,8 @@ RocketChat.Notifications.onUser 'message', (msg) ->
 					type = typeName.substr(0, 1)
 					name = typeName.substr(1)
 
-					query =
-						t: type
-
-					if type is 'd'
-						query.usernames = $all: [username, name]
-					else
-						query.name = name
-
-					room = ChatRoom.findOne query, { reactive: false }
+					room = Tracker.nonreactive =>
+						return RocketChat.roomTypes.findRoom(type, name, user)
 
 					if not room?
 						record.ready = true

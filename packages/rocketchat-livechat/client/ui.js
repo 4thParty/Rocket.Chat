@@ -5,17 +5,30 @@ RocketChat.roomTypes.add('l', 5, {
 	icon: 'icon-chat-empty',
 	route: {
 		name: 'live',
-		path: '/live/:name',
-		action: (params/*, queryParams*/) => {
-			openRoom('l', params.name);
+		path: '/live/:code(\\d+)',
+		action(params/*, queryParams*/) {
+			openRoom('l', params.code);
 			RocketChat.TabBar.showGroup('livechat', 'search');
 		},
-		link: (sub) => {
+		link(sub) {
 			return {
-				name: sub.name
+				code: sub.code
 			};
 		}
 	},
+
+	findRoom(identifier) {
+		return ChatRoom.findOne({ code: parseInt(identifier) });
+	},
+
+	roomName(roomData) {
+		if (!roomData.name) {
+			return roomData.label;
+		} else {
+			return roomData.name;
+		}
+	},
+
 	condition: () => {
 		return RocketChat.settings.get('Livechat_enabled') && RocketChat.authz.hasAllPermission('view-l-room');
 	}
@@ -40,14 +53,14 @@ RocketChat.TabBar.addButton({
 	order: 0
 });
 
-RocketChat.TabBar.addButton({
-	groups: ['livechat'],
-	id: 'visitor-navigation',
-	i18nTitle: 'Visitor_Navigation',
-	icon: 'icon-history',
-	template: 'visitorNavigation',
-	order: 10
-});
+// RocketChat.TabBar.addButton({
+// 	groups: ['livechat'],
+// 	id: 'visitor-navigation',
+// 	i18nTitle: 'Visitor_Navigation',
+// 	icon: 'icon-history',
+// 	template: 'visitorNavigation',
+// 	order: 10
+// });
 
 RocketChat.TabBar.addButton({
 	groups: ['livechat'],
@@ -66,8 +79,19 @@ RocketChat.TabBar.addGroup('push-notifications', ['livechat']);
 RocketChat.TabBar.addButton({
 	groups: ['livechat'],
 	id: 'external-search',
-	i18nTitle: 'External_Search',
+	i18nTitle: 'Knowledge_Base',
 	icon: 'icon-lightbulb',
 	template: 'externalSearch',
 	order: 10
+});
+
+RocketChat.MessageTypes.registerType({
+	id: 'livechat-close',
+	system: true,
+	message: 'Conversation_closed',
+	data(message) {
+		return {
+			comment: message.msg
+		};
+	}
 });
