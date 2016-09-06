@@ -11,8 +11,6 @@ Package.describe({
 });
 
 Package.onUse(function(api) {
-	api.versionsFrom('1.2.1');
-
 	api.use([
 		'accounts-base',
 		'mongo',
@@ -38,7 +36,6 @@ Package.onUse(function(api) {
 	api.addFiles('lib/avatar.coffee', 'client');
 	api.addFiles('lib/chatMessages.coffee', 'client');
 	api.addFiles('lib/collections.coffee', 'client');
-	api.addFiles('lib/constallation.js', 'client');
 	api.addFiles('lib/customEventPolyfill.js', 'client');
 	api.addFiles('lib/fileUpload.coffee', 'client');
 	api.addFiles('lib/fireEvent.js', 'client');
@@ -63,7 +60,7 @@ Package.onUse(function(api) {
 	api.addFiles('lib/cordova/keyboard-fix.coffee', 'client');
 	api.addFiles('lib/cordova/push.coffee', 'client');
 	api.addFiles('lib/cordova/urls.coffee', 'client');
-	api.addFiles('lib/cordova/user-state.coffee', 'client');
+	api.addFiles('lib/cordova/user-state.js', 'client');
 
 	// LIB RECORDERJS
 	api.addFiles('lib/recorderjs/audioRecorder.coffee', 'client');

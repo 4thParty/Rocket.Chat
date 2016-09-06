@@ -11,8 +11,6 @@ Package.describe({
 });
 
 Package.onUse(function(api) {
-	api.versionsFrom('1.2.1');
-
 	api.use([
 		'mongo',
 		'ecmascript',
@@ -26,7 +24,6 @@ Package.onUse(function(api) {
 
 	api.addFiles('master/main.html', 'client');
 	api.addFiles('master/loading.html', 'client');
-	api.addFiles('master/pageLoading.html', 'client');
 	api.addFiles('master/error.html', 'client');
 	api.addFiles('master/logoLayout.html', 'client');
 
