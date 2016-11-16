@@ -3,7 +3,15 @@
 		<div class="list-view search-messages-list">
 			<div class="title">
 				<h2>{{_ "Search_Messages"}}</h2>
-				<p>{{_ "You_can_search_using_RegExp_eg"}} <code class="inline">/^text$/i</code></p>
+				<p>{{_ "Search_only_messages_you_sent:"}} <code class="inline">from:me</code></p>
+				<p>{{_ "Search_only_starred_messages:"}} <code class="inline">has:star</code></p>
+				<p>{{_ "Search_only_pinned_messages:"}} <code class="inline">has:pin</code></p>
+				<p>{{_ "Search_only_messages_with_link:"}} <code class="inline">has:link</code></p>
+				<p>{{_ "Search_messages_on_date:"}} <code class="inline">on:dd?MM?YYY</code></p>
+				<p>{{_ "Search_messages_before_date:"}} <code class="inline">before:dd?MM?YYY</code></p>
+				<p>{{_ "Search_messages_after_date:"}} <code class="inline">after:dd?MM?YYY</code></p>
+				<p>{{_ "Sort_search_results_ascending_by_timestamp:"}} <code class="inline">order:asc</code></p>
+				<p>{{_ "Sort_search_results_descending_by_timestamp:"}} <code class="inline">order:desc</code></p>
 			</div>
 			<div class="control">
 				<form class="search-form" role="form">
