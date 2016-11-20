@@ -86,7 +86,7 @@ Importer.Slack = class Importer.Slack extends Importer.Base
 		selectionUsers = tempUsers.map (user) ->
 			return new Importer.SelectionUser user.id, user.name, user.profile.email, user.deleted, user.is_bot, !user.is_bot
 		selectionChannels = tempChannels.map (channel) ->
-			return new Importer.SelectionChannel channel.id, channel.name, channel.is_archived, true
+			return new Importer.SelectionChannel channel.id, channel.name, channel.is_archived, true, false
 
 		@updateProgress Importer.ProgressStep.USER_SELECTION
 		return new Importer.Selection @name, selectionUsers, selectionChannels
@@ -347,8 +347,8 @@ Importer.Slack = class Importer.Slack extends Importer.Base
 			message = message.replace /<!everyone>/g, '@all'
 			message = message.replace /<!channel>/g, '@all'
 			message = message.replace /<!here>/g, '@here'
-			message = message.replace /&gt;/g, '<'
-			message = message.replace /&lt;/g, '>'
+			message = message.replace /&gt;/g, '>'
+			message = message.replace /&lt;/g, '<'
 			message = message.replace /&amp;/g, '&'
 			message = message.replace /:simple_smile:/g, ':smile:'
 			message = message.replace /:memo:/g, ':pencil:'
@@ -366,6 +366,6 @@ Importer.Slack = class Importer.Slack extends Importer.Base
 		selectionUsers = @users.users.map (user) ->
 			return new Importer.SelectionUser user.id, user.name, user.profile.email, user.deleted, user.is_bot, !user.is_bot
 		selectionChannels = @channels.channels.map (channel) ->
-			return new Importer.SelectionChannel channel.id, channel.name, channel.is_archived, true
+			return new Importer.SelectionChannel channel.id, channel.name, channel.is_archived, true, false
 
 		return new Importer.Selection @name, selectionUsers, selectionChannels
