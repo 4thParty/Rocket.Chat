@@ -7,6 +7,10 @@ Meteor.methods({
 
 		let message = RocketChat.models.Messages.findOneById(messageId);
 
+		if (!message) {
+			throw new Meteor.Error('error-not-allowed', 'Not allowed', { method: 'setReaction' });
+		}
+
 		let room = Meteor.call('canAccessRoom', message.rid, Meteor.userId());
 
 		if (!room) {
@@ -15,7 +19,7 @@ Meteor.methods({
 
 		const user = Meteor.user();
 
-		if (Array.isArray(room.muted) && room.muted.indexOf(user.username) !== -1) {
+		if (Array.isArray(room.muted) && room.muted.indexOf(user.username) !== -1 && !room.reactWhenReadOnly) {
 			RocketChat.Notifications.notifyUser(Meteor.userId(), 'message', {
 				_id: Random.id(),
 				rid: room._id,
@@ -23,7 +27,7 @@ Meteor.methods({
 				msg: TAPi18n.__('You_have_been_muted', {}, user.language)
 			});
 			return false;
-		} else if (Array.isArray(room.usernames) && room.usernames.indexOf(user.username) === -1) {
+		} else if (!RocketChat.models.Subscriptions.findOne({ rid: message.rid })) {
 			return false;
 		}
 

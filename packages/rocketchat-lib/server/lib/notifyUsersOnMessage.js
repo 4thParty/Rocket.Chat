@@ -1,6 +1,12 @@
+import moment from 'moment';
+
 RocketChat.callbacks.add('afterSaveMessage', function(message, room) {
 	// skips this callback if the message was edited
 	if (message.editedAt) {
+		return message;
+	}
+
+	if (message.ts && Math.abs(moment(message.ts).diff()) > 60000) {
 		return message;
 	}
 
@@ -36,20 +42,26 @@ RocketChat.callbacks.add('afterSaveMessage', function(message, room) {
 		mentionIds = [];
 		highlightsIds = [];
 		toAll = false;
+		console.time('notifyUsersOnMessage');
 		highlights = RocketChat.models.Users.findUsersByUsernamesWithHighlights(room.usernames, { fields: { '_id': 1, 'settings.preferences.highlights': 1 }}).fetch();
+		console.timeEnd('notifyUsersOnMessage');
 
 		if (message.mentions != null) {
 			message.mentions.forEach(function(mention) {
 				if (!toAll && mention._id === 'all') {
 					toAll = true;
 				}
-				mentionIds.push(mention._id);
+				if (mention._id !== message.u._id) {
+					mentionIds.push(mention._id);
+				}
 			});
 		}
 
 		highlights.forEach(function(user) {
 			if (user && user.settings && user.settings.preferences && messageContainsHighlight(message, user.settings.preferences.highlights)) {
-				highlightsIds.push(user._id);
+				if (user._id !== message.u._id) {
+					highlightsIds.push(user._id);
+				}
 			}
 		});
 
@@ -65,8 +77,8 @@ RocketChat.callbacks.add('afterSaveMessage', function(message, room) {
 
 	// Update all other subscriptions to alert their owners but witout incrementing
 	// the unread counter, as it is only for mentions and direct messages
-	RocketChat.models.Subscriptions.setAlertForRoomIdExcludingUserId(message.rid, message.u._id, true);
+	RocketChat.models.Subscriptions.setAlertForRoomIdExcludingUserId(message.rid, message.u._id);
 
 	return message;
 
-}, RocketChat.callbacks.priority.LOW);
+}, RocketChat.callbacks.priority.LOW, 'notifyUsersOnMessage');

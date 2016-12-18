@@ -6,16 +6,6 @@
 	var hookQueue = [];
 	var ready = false;
 
-	var closeWidget = function() {
-		widget.dataset.state = 'closed';
-		widget.style.height = '30px';
-	};
-
-	var openWidget = function() {
-		widget.dataset.state = 'opened';
-		widget.style.height = '300px';
-	};
-
 	// hooks
 	var callHook = function(action, params) {
 		if (!ready) {
@@ -27,6 +17,19 @@
 			args: params
 		};
 		iframe.contentWindow.postMessage(data, '*');
+	};
+
+	var closeWidget = function() {
+		widget.dataset.state = 'closed';
+		widget.style.height = '30px';
+		callHook('widgetClosed');
+	};
+
+	var openWidget = function() {
+		widget.dataset.state = 'opened';
+		widget.style.height = '300px';
+		callHook('widgetOpened');
+		document.querySelector('.rocketchat-widget iframe').focus();
 	};
 
 	var api = {
@@ -59,8 +62,9 @@
 		}
 	};
 
-	var pageVisited = function() {
+	var pageVisited = function(change) {
 		callHook('pageVisited', {
+			change: change,
 			location: JSON.parse(JSON.stringify(document.location)),
 			title: document.title
 		});
@@ -70,6 +74,18 @@
 		callHook('setCustomField', [ key, value ]);
 	};
 
+	var setTheme = function(theme) {
+		callHook('setTheme', theme);
+	};
+
+	var setDepartment = function(department) {
+		callHook('setDepartment', department);
+	};
+
+	var clearDepartment = function() {
+		callHook('clearDepartment');
+	};
+
 	var currentPage = {
 		href: null,
 		title: null
@@ -77,9 +93,11 @@
 	var trackNavigation = function() {
 		setInterval(function() {
 			if (document.location.href !== currentPage.href) {
-				pageVisited();
-
+				pageVisited('url');
 				currentPage.href = document.location.href;
+			}
+			if (document.title !== currentPage.title) {
+				pageVisited('title');
 				currentPage.title = document.title;
 			}
 		}, 800);
@@ -160,7 +178,10 @@
 	// exports
 	w.RocketChat.livechat = {
 		pageVisited: pageVisited,
-		setCustomField: setCustomField
+		setCustomField: setCustomField,
+		setTheme: setTheme,
+		setDepartment: setDepartment,
+		clearDepartment: clearDepartment
 	};
 
 	// proccess queue

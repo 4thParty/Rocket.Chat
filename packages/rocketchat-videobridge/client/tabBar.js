@@ -1,23 +1,8 @@
 Meteor.startup(function() {
 	Tracker.autorun(function() {
 		if (RocketChat.settings.get('Jitsi_Enabled')) {
-
-			// Load from the jitsi meet instance.
-			if (typeof JitsiMeetExternalAPI !== undefined) {
-				let domain = RocketChat.settings.get('Jitsi_Domain');
-				let ssl = RocketChat.settings.get('Jitsi_SSL');
-
-				$.getScript('/packages/rocketchat_videobridge/client/public/external_api.js');
-			}
-
-			let tabGroups = ['directmessage', 'privategroup'];
-
-			if (RocketChat.settings.get('Jitsi_Enable_Channels')) {
-				tabGroups.push('channel');
-			}
-
 			RocketChat.TabBar.addButton({
-				groups: tabGroups,
+				groups: ['directmessage', 'privategroup'],
 				id: 'video',
 				i18nTitle: 'Video Chat',
 				icon: 'icon-videocam',
@@ -26,6 +11,26 @@ Meteor.startup(function() {
 				width: 790,
 				order: 12
 			});
+		} else {
+			RocketChat.TabBar.removeButton('video');
+		}
+	});
+
+	Tracker.autorun(function() {
+		if (RocketChat.settings.get('Jitsi_Enabled') && RocketChat.settings.get('Jitsi_Enable_Channels')) {
+			RocketChat.TabBar.addGroup('video', ['channel']);
+		} else {
+			RocketChat.TabBar.removeGroup('video', ['channel']);
+		}
+	});
+
+	Tracker.autorun(function() {
+		if (RocketChat.settings.get('Jitsi_Enabled')) {
+			// Load from the jitsi meet instance.
+			if (typeof JitsiMeetExternalAPI === 'undefined') {
+				const prefix = __meteor_runtime_config__.ROOT_URL_PATH_PREFIX || '';
+				$.getScript(`${prefix}/packages/rocketchat_videobridge/client/public/external_api.js`);
+			}
 
 			// Compare current time to call started timeout.  If its past then call is probably over.
 			if (Session.get('openedRoom')) {
@@ -33,14 +38,13 @@ Meteor.startup(function() {
 
 				let room = RocketChat.models.Rooms.findOne({_id: rid});
 				let currentTime = new Date().getTime();
-				let jitsiTimeout = new Date(room.jitsiTimeout).getTime() || currentTime;
+				let jitsiTimeout = new Date((room && room.jitsiTimeout) || currentTime).getTime();
 
 				if (jitsiTimeout > currentTime) {
 					RocketChat.TabBar.updateButton('video', { class: 'attention' });
 				} else {
 					RocketChat.TabBar.updateButton('video', { class: '' });
 				}
-
 			}
 		}
 	});

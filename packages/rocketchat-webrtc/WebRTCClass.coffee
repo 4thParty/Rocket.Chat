@@ -228,10 +228,10 @@ class WebRTCClass
 		if @active isnt true or @monitor is true or @remoteMonitoring is true then return
 
 		remoteConnections = []
-		for id, peerConnections of @peerConnections
+		for id, peerConnection of @peerConnections
 			remoteConnections.push
 				id: id
-				media: peerConnections.remoteMedia
+				media: peerConnection.remoteMedia
 
 		@transport.sendStatus
 			media: @media
@@ -339,6 +339,8 @@ class WebRTCClass
 				stream.removeTrack(stream.getAudioTracks()[0])
 				stream.addTrack(peer.stream.getAudioTracks()[0])
 				stream.volume = volume
+
+				this.audioContext = audioContext
 
 			onSuccess(stream)
 
@@ -461,7 +463,8 @@ class WebRTCClass
 
 	stopAllPeerConnections: ->
 		for id, peerConnection of @peerConnections
-				@stopPeerConnection id
+			@stopPeerConnection id
+		window.audioContext.close()
 
 	setAudioEnabled: (enabled=true) ->
 		if @localStream?
@@ -803,9 +806,11 @@ WebRTC = new class
 
 
 Meteor.startup ->
-	RocketChat.Notifications.onUser 'webrtc', (type, data) =>
-		if not data.room? then return
+	Tracker.autorun ->
+		if Meteor.userId()
+			RocketChat.Notifications.onUser 'webrtc', (type, data) =>
+				if not data.room? then return
 
-		webrtc = WebRTC.getInstanceByRoomId(data.room)
+				webrtc = WebRTC.getInstanceByRoomId(data.room)
 
-		webrtc.transport.onUserStream type, data
+				webrtc.transport.onUserStream type, data

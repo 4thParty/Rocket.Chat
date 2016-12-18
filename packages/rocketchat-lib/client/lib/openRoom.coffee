@@ -6,7 +6,7 @@ currentTracker = undefined
 	Meteor.defer ->
 		currentTracker = Tracker.autorun (c) ->
 			if RoomManager.open(type + name).ready() isnt true
-				BlazeLayout.render 'main', {center: 'loading'}
+				BlazeLayout.render 'main', { modal: RocketChat.Layout.isEmbedded(), center: 'loading' }
 				return
 
 			user = Meteor.user()
@@ -21,14 +21,23 @@ currentTracker = undefined
 				if type is 'd'
 					Meteor.call 'createDirectMessage', name, (err) ->
 						if !err
+							RoomManager.close(type + name)
 							openRoom('d', name)
 						else
 							Session.set 'roomNotFound', {type: type, name: name}
 							BlazeLayout.render 'main', {center: 'roomNotFound'}
 							return
 				else
-					Session.set 'roomNotFound', {type: type, name: name}
-					BlazeLayout.render 'main', {center: 'roomNotFound'}
+					Meteor.call 'getRoomByTypeAndName', type, name, (err, record) ->
+						if err?
+							Session.set 'roomNotFound', {type: type, name: name}
+							BlazeLayout.render 'main', {center: 'roomNotFound'}
+						else
+							delete record.$loki
+							RocketChat.models.Rooms.upsert({ _id: record._id }, _.omit(record, '_id'))
+							RoomManager.close(type + name)
+							openRoom(type, name)
+
 				return
 
 			$('.rocket-loader').remove();
@@ -42,6 +51,8 @@ currentTracker = undefined
 					roomDom.querySelector('.messages-box > .wrapper').scrollTop = roomDom.oldScrollTop
 
 			Session.set 'openedRoom', room._id
+
+			fireGlobalEvent 'room-opened', _.omit room, 'usernames'
 
 			Session.set 'editRoomTitle', false
 			RoomManager.updateMentionsMarksOfRoom type + name

@@ -6,15 +6,14 @@ Package.describe({
 });
 
 Package.onUse(function(api) {
-	api.versionsFrom('1.0');
-
 	api.use([
 		'coffeescript',
+		'ecmascript',
 		'underscore',
 		'templating',
 		'underscorestring:underscore.string',
 		'simple:highlight.js',
-		'rocketchat:lib',
+		'rocketchat:lib'
 	]);
 
 	api.addFiles('settings.coffee', 'server');
@@ -27,7 +26,7 @@ Package.onTest(function(api) {
 		'coffeescript',
 		'sanjo:jasmine@0.20.2',
 		'rocketchat:lib',
-		'rocketchat:markdown',
+		'rocketchat:markdown'
 	]);
 
 	api.addFiles('tests/jasmine/client/unit/markdown.spec.coffee', 'client');
