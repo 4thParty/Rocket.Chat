@@ -21,7 +21,9 @@ Importer.Base = class Importer.Base
 		# but for some reason the mongo instanace which comes with meteor
 		# errors out for anything close to that size. So, we are rounding it
 		# down to 8000000 bytes.
-		MongoInternals.NpmModules.mongodb.module.BSON.calculateObjectSize object
+		BSON = require('bson').native().BSON
+		bson = new BSON()
+		bson.calculateObjectSize object
 
 	@getBSONSafeArraysFromAnArray: (theArray) ->
 		BSONSize = Importer.Base.getBSONSize theArray
@@ -193,7 +195,7 @@ Importer.Base = class Importer.Base
 						if details.message_id? and (typeof details.message_id is 'string')
 							msg['_id'] = details.message_id
 
-						RocketChat.sendMessage user, msg, room
+						RocketChat.sendMessage user, msg, room, true
 			else
 				@logger.error "Failed to create the store for #{fileUrl}!!!"
 		)

@@ -1,5 +1,5 @@
 Meteor.startup(function() {
-	RocketChat.settings.addGroup('Jitsi', function() {
+	RocketChat.settings.addGroup('Video Conference', function() {
 		this.add('Jitsi_Enabled', false, {
 			type: 'boolean',
 			i18nLabel: 'Enabled',
@@ -34,6 +34,16 @@ Meteor.startup(function() {
 				value: true
 			},
 			i18nLabel: 'Jitsi_Enable_Channels',
+			public: true
+		});
+
+		this.add('Jitsi_Chrome_Extension', 'nocfbnnmjnndkbipkabodnheejiegccf', {
+			type: 'string',
+			enableQuery: {
+				_id: 'Jitsi_Enabled',
+				value: true
+			},
+			i18nLabel: 'Jitsi_Chrome_Extension',
 			public: true
 		});
 	});
