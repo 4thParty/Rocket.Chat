@@ -3,6 +3,7 @@
 		<div class="list-view search-messages-list">
 			<div class="title">
 				<h2>{{_ "Search_Messages"}}</h2>
+<<<<<<< HEAD
 				<p><code class="inline">from:me</code> {{_ "Search only messages you sent:"}} </p>
 				<p><code class="inline">has:star</code> {{_ "Search only starred messages:"}} </p>
 				<p><code class="inline">has:pin</code> {{_ "Search only pinned messages:"}} </p>
@@ -12,12 +13,15 @@
 				<p><code class="inline">after:dd/MM/YYYY</code> {{_ "Search messages after date:"}} </p>
 				<p><code class="inline">order:asc</code> {{_ "Sort search results ascending by timestamp:"}} </p>
 				<p><code class="inline">order:desc</code> {{_ "Sort search results descending by timestamp:"}} </p>
+=======
+				<p>{{_ "You_can_search_using_RegExp_eg"}} <code class="code-colors inline">/^text$/i</code></p>
+>>>>>>> RocketChat/develop
 			</div>
 			<div class="control">
 				<form class="search-form" role="form">
 					<div class="input-line search">
-						<input type="text" id="message-search" class="search" placeholder="{{tSearchMessages}}" autocomplete="off" />
-						<i class="icon-search"></i>
+						<input type="text" id="message-search" class="search content-background-color" placeholder="{{tSearchMessages}}" autocomplete="off" />
+						<i class="icon-search secondary-font-color"></i>
 					</div>
 				</form>
 			</div>
