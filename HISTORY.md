@@ -1,5 +1,15 @@
 # History
 
+## NEXT
+
+- [NEW] Permission `join-without-join-code` assigned to admins and bots by default (#6139)
+- [NEW] Integrations, both incoming and outgoing, now have access to the models. Example: `Users.findOneById(id)` (#6336)
+- [FIX] Incoming integrations would break when trying to use the `Store` feature.
+
+## 0.54.1 - 2017-Mar-23
+
+- [FIX] Images on attachments were not loading except for uploaded files.
+
 ## 0.54.0 - 2017-Mar-22
 
 ### Meteor update to 1.4.3.1
