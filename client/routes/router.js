@@ -27,7 +27,7 @@ FlowRouter.route('/', {
 		Tracker.autorun(function(c) {
 			if (FlowRouter.subsReady() === true) {
 				Meteor.defer(function() {
-					if (Meteor.user().defaultRoom) {
+					if (Meteor.user() && Meteor.user().defaultRoom) {
 						const room = Meteor.user().defaultRoom.split('/');
 						FlowRouter.go(room[0], { name: room[1] }, FlowRouter.current().queryParams);
 					} else {
@@ -53,7 +53,6 @@ FlowRouter.route('/home', {
 	name: 'home',
 
 	action(params, queryParams) {
-		RocketChat.TabBar.showGroup('home');
 		KonchatNotification.getDesktopPermission();
 		if (queryParams.saml_idp_credentialToken !== undefined) {
 			Accounts.callLoginMethod({
@@ -61,20 +60,11 @@ FlowRouter.route('/home', {
 					saml: true,
 					credentialToken: queryParams.saml_idp_credentialToken
 				}],
-				userCallback: function() { BlazeLayout.render('main', {center: 'home'}); }
+				userCallback() { BlazeLayout.render('main', {center: 'home'}); }
 			});
 		} else {
 			BlazeLayout.render('main', {center: 'home'});
 		}
-	}
-});
-
-FlowRouter.route('/changeavatar', {
-	name: 'changeAvatar',
-
-	action() {
-		RocketChat.TabBar.showGroup('changeavatar');
-		BlazeLayout.render('main', {center: 'avatarPrompt'});
 	}
 });
 
@@ -86,9 +76,11 @@ FlowRouter.route('/account/:group?', {
 			params.group = 'Preferences';
 		}
 		params.group = _.capitalize(params.group, true);
-		RocketChat.TabBar.showGroup('account');
-		BlazeLayout.render('main', { center: `account${params.group}` });
-	}
+		BlazeLayout.render('main', { center: `account${ params.group }` });
+	},
+	triggersExit: [function() {
+		$('.main-content').addClass('rc-old');
+	}]
 });
 
 FlowRouter.route('/history/private', {
@@ -100,7 +92,6 @@ FlowRouter.route('/history/private', {
 
 	action() {
 		Session.setDefault('historyFilter', '');
-		RocketChat.TabBar.showGroup('private-history');
 		BlazeLayout.render('main', {center: 'privateHistory'});
 	}
 });

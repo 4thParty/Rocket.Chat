@@ -1,46 +1,80 @@
-function findDirectMessageRoomById(roomId, userId) {
-	if (!roomId || !roomId.trim()) {
-		return RocketChat.API.v1.failure('Body param "roomId" is required');
+function findDirectMessageRoom(params, user) {
+	if ((!params.roomId || !params.roomId.trim()) && (!params.username || !params.username.trim())) {
+		throw new Meteor.Error('error-room-param-not-provided', 'Body param "roomId" or "username" is required');
 	}
 
-	const roomSub = RocketChat.models.Subscriptions.findOneByRoomIdAndUserId(roomId, userId);
+	const room = RocketChat.getRoomByNameOrIdWithOptionToJoin({
+		currentUserId: user._id,
+		nameOrId: params.username || params.roomId,
+		type: 'd'
+	});
 
-	if (!roomSub || roomSub.t !== 'd') {
-		return RocketChat.API.v1.failure(`No direct message room found by the id of: ${roomId}`);
+	if (!room || room.t !== 'd') {
+		throw new Meteor.Error('error-room-not-found', 'The required "roomId" or "username" param provided does not match any dirct message');
 	}
 
-	return roomSub;
+	const subscription = RocketChat.models.Subscriptions.findOneByRoomIdAndUserId(room._id, user._id);
+
+	return {
+		room,
+		subscription
+	};
 }
 
-RocketChat.API.v1.addRoute('im.close', { authRequired: true }, {
-	post: function() {
-		const findResult = findDirectMessageRoomById(this.bodyParams.roomId, this.userId);
+RocketChat.API.v1.addRoute(['dm.create', 'im.create'], { authRequired: true }, {
+	post() {
+		const findResult = findDirectMessageRoom(this.requestParams(), this.user);
 
-		//The find method returns either with the dm or the failure
-		if (findResult.statusCode) {
-			return findResult;
-		}
+		return RocketChat.API.v1.success({
+			room: findResult.room
+		});
+	}
+});
 
-		if (!findResult.open) {
-			return RocketChat.API.v1.failure(`The direct message room, ${this.bodyParams.name}, is already closed to the sender`);
+RocketChat.API.v1.addRoute(['dm.close', 'im.close'], { authRequired: true }, {
+	post() {
+		const findResult = findDirectMessageRoom(this.requestParams(), this.user);
+
+		if (!findResult.subscription.open) {
+			return RocketChat.API.v1.failure(`The direct message room, ${ this.bodyParams.name }, is already closed to the sender`);
 		}
 
 		Meteor.runAsUser(this.userId, () => {
-			Meteor.call('hideRoom', findResult.rid);
+			Meteor.call('hideRoom', findResult.room._id);
 		});
 
 		return RocketChat.API.v1.success();
 	}
 });
 
-RocketChat.API.v1.addRoute('im.history', { authRequired: true }, {
-	get: function() {
-		const findResult = findDirectMessageRoomById(this.queryParams.roomId, this.userId);
+RocketChat.API.v1.addRoute(['dm.files', 'im.files'], { authRequired: true }, {
+	get() {
+		const findResult = findDirectMessageRoom(this.requestParams(), this.user);
 
-		//The find method returns either with the group or the failure
-		if (findResult.statusCode) {
-			return findResult;
-		}
+		const { offset, count } = this.getPaginationItems();
+		const { sort, fields, query } = this.parseJsonQuery();
+
+		const ourQuery = Object.assign({}, query, { rid: findResult.room._id });
+
+		const files = RocketChat.models.Uploads.find(ourQuery, {
+			sort: sort ? sort : { name: 1 },
+			skip: offset,
+			limit: count,
+			fields
+		}).fetch();
+
+		return RocketChat.API.v1.success({
+			files,
+			count: files.length,
+			offset,
+			total: RocketChat.models.Uploads.find(ourQuery).count()
+		});
+	}
+});
+
+RocketChat.API.v1.addRoute(['dm.history', 'im.history'], { authRequired: true }, {
+	get() {
+		const findResult = findDirectMessageRoom(this.requestParams(), this.user);
 
 		let latestDate = new Date();
 		if (this.queryParams.latest) {
@@ -69,18 +103,117 @@ RocketChat.API.v1.addRoute('im.history', { authRequired: true }, {
 
 		let result;
 		Meteor.runAsUser(this.userId, () => {
-			result = Meteor.call('getChannelHistory', { rid: findResult.rid, latest: latestDate, oldest: oldestDate, inclusive, count, unreads });
+			result = Meteor.call('getChannelHistory', {
+				rid: findResult.room._id,
+				latest: latestDate,
+				oldest: oldestDate,
+				inclusive,
+				count,
+				unreads
+			});
 		});
 
+		if (!result) {
+			return RocketChat.API.v1.unauthorized();
+		}
+
+		return RocketChat.API.v1.success(result);
+	}
+});
+
+RocketChat.API.v1.addRoute(['dm.members', 'im.members'], { authRequired: true }, {
+	get() {
+		const findResult = findDirectMessageRoom(this.requestParams(), this.user);
+
+		const { offset, count } = this.getPaginationItems();
+		const { sort } = this.parseJsonQuery();
+
+		const members = RocketChat.models.Rooms.processQueryOptionsOnResult(Array.from(findResult.room.usernames), {
+			sort: sort ? sort : -1,
+			skip: offset,
+			limit: count
+		});
+
+		const users = RocketChat.models.Users.find({ username: { $in: members } },
+			{ fields: { _id: 1, username: 1, name: 1, status: 1, utcOffset: 1 } }).fetch();
+
 		return RocketChat.API.v1.success({
-			messages: result && result.messages ? result.messages : []
+			members: users,
+			count: members.length,
+			offset,
+			total: findResult.room.usernames.length
 		});
 	}
 });
 
+RocketChat.API.v1.addRoute(['dm.messages', 'im.messages'], { authRequired: true }, {
+	get() {
+		const findResult = findDirectMessageRoom(this.requestParams(), this.user);
 
-RocketChat.API.v1.addRoute('im.list', { authRequired: true }, {
-	get: function() {
+		const { offset, count } = this.getPaginationItems();
+		const { sort, fields, query } = this.parseJsonQuery();
+
+		console.log(findResult);
+		const ourQuery = Object.assign({}, query, { rid: findResult.room._id });
+
+		const messages = RocketChat.models.Messages.find(ourQuery, {
+			sort: sort ? sort : { ts: -1 },
+			skip: offset,
+			limit: count,
+			fields
+		}).fetch();
+
+		return RocketChat.API.v1.success({
+			messages,
+			count: messages.length,
+			offset,
+			total: RocketChat.models.Messages.find(ourQuery).count()
+		});
+	}
+});
+
+RocketChat.API.v1.addRoute(['dm.messages.others', 'im.messages.others'], { authRequired: true }, {
+	get() {
+		if (RocketChat.settings.get('API_Enable_Direct_Message_History_EndPoint') !== true) {
+			throw new Meteor.Error('error-endpoint-disabled', 'This endpoint is disabled', { route: '/api/v1/im.messages.others' });
+		}
+
+		if (!RocketChat.authz.hasPermission(this.userId, 'view-room-administration')) {
+			return RocketChat.API.v1.unauthorized();
+		}
+
+		const roomId = this.queryParams.roomId;
+		if (!roomId || !roomId.trim()) {
+			throw new Meteor.Error('error-roomid-param-not-provided', 'The parameter "roomId" is required');
+		}
+
+		const room = RocketChat.models.Rooms.findOneById(roomId);
+		if (!room || room.t !== 'd') {
+			throw new Meteor.Error('error-room-not-found', `No direct message room found by the id of: ${ roomId }`);
+		}
+
+		const { offset, count } = this.getPaginationItems();
+		const { sort, fields, query } = this.parseJsonQuery();
+		const ourQuery = Object.assign({}, query, { rid: room._id });
+
+		const msgs = RocketChat.models.Messages.find(ourQuery, {
+			sort: sort ? sort : { ts: -1 },
+			skip: offset,
+			limit: count,
+			fields
+		}).fetch();
+
+		return RocketChat.API.v1.success({
+			messages: msgs,
+			offset,
+			count: msgs.length,
+			total: RocketChat.models.Messages.find(ourQuery).count()
+		});
+	}
+});
+
+RocketChat.API.v1.addRoute(['dm.list', 'im.list'], { authRequired: true }, {
+	get() {
 		const { offset, count } = this.getPaginationItems();
 		const { sort, fields } = this.parseJsonQuery();
 		let rooms = _.pluck(RocketChat.models.Subscriptions.findByTypeAndUserId('d', this.userId).fetch(), '_room');
@@ -90,7 +223,7 @@ RocketChat.API.v1.addRoute('im.list', { authRequired: true }, {
 			sort: sort ? sort : { name: 1 },
 			skip: offset,
 			limit: count,
-			fields: Object.assign({}, fields, RocketChat.API.v1.defaultFieldsToExclude)
+			fields
 		});
 
 		return RocketChat.API.v1.success({
@@ -102,8 +235,8 @@ RocketChat.API.v1.addRoute('im.list', { authRequired: true }, {
 	}
 });
 
-RocketChat.API.v1.addRoute('im.list.everyone', { authRequired: true }, {
-	get: function() {
+RocketChat.API.v1.addRoute(['dm.list.everyone', 'im.list.everyone'], { authRequired: true }, {
+	get() {
 		if (!RocketChat.authz.hasPermission(this.userId, 'view-room-administration')) {
 			return RocketChat.API.v1.unauthorized();
 		}
@@ -117,7 +250,7 @@ RocketChat.API.v1.addRoute('im.list.everyone', { authRequired: true }, {
 			sort: sort ? sort : { name: 1 },
 			skip: offset,
 			limit: count,
-			fields: Object.assign({}, fields, RocketChat.API.v1.defaultFieldsToExclude)
+			fields
 		}).fetch();
 
 		return RocketChat.API.v1.success({
@@ -129,42 +262,32 @@ RocketChat.API.v1.addRoute('im.list.everyone', { authRequired: true }, {
 	}
 });
 
-RocketChat.API.v1.addRoute('im.open', { authRequired: true }, {
-	post: function() {
-		const findResult = findDirectMessageRoomById(this.bodyParams.roomId, this.userId);
+RocketChat.API.v1.addRoute(['dm.open', 'im.open'], { authRequired: true }, {
+	post() {
+		const findResult = findDirectMessageRoom(this.requestParams(), this.user);
 
-		//The find method returns either with the group or the failure
-		if (findResult.statusCode) {
-			return findResult;
-		}
-
-		if (findResult.open) {
-			return RocketChat.API.v1.failure(`The direct message room, ${this.bodyParams.name}, is already open for the sender`);
+		if (findResult.subscription.open) {
+			return RocketChat.API.v1.failure(`The direct message room, ${ this.bodyParams.name }, is already open for the sender`);
 		}
 
 		Meteor.runAsUser(this.userId, () => {
-			Meteor.call('openRoom', findResult.rid);
+			Meteor.call('openRoom', findResult.room._id);
 		});
 
 		return RocketChat.API.v1.success();
 	}
 });
 
-RocketChat.API.v1.addRoute('im.setTopic', { authRequired: true }, {
-	post: function() {
+RocketChat.API.v1.addRoute(['dm.setTopic', 'im.setTopic'], { authRequired: true }, {
+	post() {
 		if (!this.bodyParams.topic || !this.bodyParams.topic.trim()) {
 			return RocketChat.API.v1.failure('The bodyParam "topic" is required');
 		}
 
-		const findResult = findDirectMessageRoomById(this.bodyParams.roomId, this.userId);
-
-		//The find method returns either with the group or the failure
-		if (findResult.statusCode) {
-			return findResult;
-		}
+		const findResult = findDirectMessageRoom(this.requestParams(), this.user);
 
 		Meteor.runAsUser(this.userId, () => {
-			Meteor.call('saveRoomSettings', findResult.rid, 'roomTopic', this.bodyParams.topic);
+			Meteor.call('saveRoomSettings', findResult.room._id, 'roomTopic', this.bodyParams.topic);
 		});
 
 		return RocketChat.API.v1.success({

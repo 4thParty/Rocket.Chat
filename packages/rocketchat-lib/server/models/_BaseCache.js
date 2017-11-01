@@ -7,16 +7,37 @@ import objectPath from 'object-path';
 const logger = new Logger('BaseCache');
 
 const lokiEq = loki.LokiOps.$eq;
+const lokiNe = loki.LokiOps.$ne;
 
 loki.LokiOps.$eq = function(a, b) {
 	if (Array.isArray(a)) {
-		return loki.LokiOps.$containsAny(a, b);
+		return a.indexOf(b) !== -1;
 	}
 	return lokiEq(a, b);
 };
 
-loki.LokiOps.$in = loki.LokiOps.$containsAny;
-loki.LokiOps.$nin = loki.LokiOps.$containsNone;
+loki.LokiOps.$ne = function(a, b) {
+	if (Array.isArray(a)) {
+		return a.indexOf(b) === -1;
+	}
+	return lokiNe(a, b);
+};
+
+const lokiIn = loki.LokiOps.$in;
+loki.LokiOps.$in = function(a, b) {
+	if (Array.isArray(a)) {
+		return a.some(subA => lokiIn(subA, b));
+	}
+	return lokiIn(a, b);
+};
+
+loki.LokiOps.$nin = function(a, b) {
+	return !loki.LokiOps.$in(a, b);
+};
+
+loki.LokiOps.$all = function(a, b) {
+	return b.every(subB => a.includes(subB));
+};
 
 loki.LokiOps.$exists = function(a, b) {
 	if (b) {
@@ -26,6 +47,9 @@ loki.LokiOps.$exists = function(a, b) {
 	return loki.LokiOps.$eq(a, undefined);
 };
 
+loki.LokiOps.$elemMatch = function(a, b) {
+	return _.findWhere(a, b);
+};
 
 const ignore = [
 	'emit',
@@ -66,7 +90,7 @@ function traceMethodCalls(target) {
 	setInterval(function() {
 		for (const property in target._stats) {
 			if (target._stats.hasOwnProperty(property) && target._stats[property].time > 0) {
-				const tags = [`property:${property}`, `collection:${target.collectionName}`];
+				const tags = [`property:${ property }`, `collection:${ target.collectionName }`];
 				RocketChat.statsTracker.timing('cache.methods.time', target._stats[property].avg, tags);
 				RocketChat.statsTracker.increment('cache.methods.totalTime', target._stats[property].time, tags);
 				RocketChat.statsTracker.increment('cache.methods.count', target._stats[property].calls, tags);
@@ -144,32 +168,32 @@ class ModelsBaseCache extends EventEmitter {
 
 	join({join, field, link, multi}) {
 		if (!RocketChat.models[join]) {
-			console.log(`Invalid cache model ${join}`);
+			console.log(`Invalid cache model ${ join }`);
 			return;
 		}
 
 		RocketChat.models[join].cache.on('inserted', (record) => {
-			this.processRemoteJoinInserted({join, field, link, multi, record: record});
+			this.processRemoteJoinInserted({join, field, link, multi, record});
 		});
 
 		RocketChat.models[join].cache.on('beforeupdate', (record, diff) => {
 			if (diff[link.remote]) {
-				this.processRemoteJoinRemoved({join, field, link, multi, record: record});
+				this.processRemoteJoinRemoved({join, field, link, multi, record});
 			}
 		});
 
 		RocketChat.models[join].cache.on('updated', (record, diff) => {
 			if (diff[link.remote]) {
-				this.processRemoteJoinInserted({join, field, link, multi, record: record});
+				this.processRemoteJoinInserted({join, field, link, multi, record});
 			}
 		});
 
 		RocketChat.models[join].cache.on('removed', (record) => {
-			this.processRemoteJoinRemoved({join, field, link, multi, record: record});
+			this.processRemoteJoinRemoved({join, field, link, multi, record});
 		});
 
 		this.on('inserted', (localRecord) => {
-			this.processLocalJoinInserted({join, field, link, multi, localRecord: localRecord});
+			this.processLocalJoinInserted({join, field, link, multi, localRecord});
 		});
 
 		this.on('beforeupdate', (localRecord, diff) => {
@@ -184,7 +208,7 @@ class ModelsBaseCache extends EventEmitter {
 
 		this.on('updated', (localRecord, diff) => {
 			if (diff[link.local]) {
-				this.processLocalJoinInserted({join, field, link, multi, localRecord: localRecord});
+				this.processLocalJoinInserted({join, field, link, multi, localRecord});
 			}
 		});
 	}
@@ -200,24 +224,30 @@ class ModelsBaseCache extends EventEmitter {
 			localRecords = [localRecords];
 		}
 
-		for (var i = 0; i < localRecords.length; i++) {
+		for (let i = 0; i < localRecords.length; i++) {
 			const localRecord = localRecords[i];
 			if (multi === true && !localRecord[field]) {
 				localRecord[field] = [];
 			}
 
+			if (typeof link.where === 'function' && link.where(localRecord, record) === false) {
+				continue;
+			}
+
+			let mutableRecord = record;
+
 			if (typeof link.transform === 'function') {
-				record = link.transform(localRecord, record);
+				mutableRecord = link.transform(localRecord, mutableRecord);
 			}
 
 			if (multi === true) {
-				localRecord[field].push(record);
+				localRecord[field].push(mutableRecord);
 			} else {
-				localRecord[field] = record;
+				localRecord[field] = mutableRecord;
 			}
 
-			this.emit(`join:${field}:inserted`, localRecord, record);
-			this.emit(`join:${field}:changed`, 'inserted', localRecord, record);
+			this.emit(`join:${ field }:inserted`, localRecord, mutableRecord);
+			this.emit(`join:${ field }:changed`, 'inserted', localRecord, mutableRecord);
 		}
 	}
 
@@ -231,6 +261,10 @@ class ModelsBaseCache extends EventEmitter {
 		for (let i = 0; i < records.length; i++) {
 			let record = records[i];
 
+			if (typeof link.where === 'function' && link.where(localRecord, record) === false) {
+				continue;
+			}
+
 			if (typeof link.transform === 'function') {
 				record = link.transform(localRecord, record);
 			}
@@ -241,8 +275,8 @@ class ModelsBaseCache extends EventEmitter {
 				localRecord[field] = record;
 			}
 
-			this.emit(`join:${field}:inserted`, localRecord, record);
-			this.emit(`join:${field}:changed`, 'inserted', localRecord, record);
+			this.emit(`join:${ field }:inserted`, localRecord, record);
+			this.emit(`join:${ field }:changed`, 'inserted', localRecord, record);
 		}
 	}
 
@@ -257,7 +291,7 @@ class ModelsBaseCache extends EventEmitter {
 			localRecords = [localRecords];
 		}
 
-		for (var i = 0; i < localRecords.length; i++) {
+		for (let i = 0; i < localRecords.length; i++) {
 			const localRecord = localRecords[i];
 
 			if (multi === true) {
@@ -272,8 +306,8 @@ class ModelsBaseCache extends EventEmitter {
 				localRecord[field] = undefined;
 			}
 
-			this.emit(`join:${field}:removed`, localRecord, record);
-			this.emit(`join:${field}:changed`, 'removed', localRecord, record);
+			this.emit(`join:${ field }:removed`, localRecord, record);
+			this.emit(`join:${ field }:changed`, 'removed', localRecord, record);
 		}
 	}
 
@@ -283,8 +317,8 @@ class ModelsBaseCache extends EventEmitter {
 		}
 
 		this.indexes[fields.join(',')] = {
-			type: type,
-			fields: fields,
+			type,
+			fields,
 			data: {}
 		};
 	}
@@ -300,7 +334,7 @@ class ModelsBaseCache extends EventEmitter {
 	addToIndex(indexName, record) {
 		const index = this.indexes[indexName];
 		if (!index) {
-			console.error(`Index not defined ${indexName}`);
+			console.error(`Index not defined ${ indexName }`);
 			return;
 		}
 
@@ -335,7 +369,7 @@ class ModelsBaseCache extends EventEmitter {
 	removeFromIndex(indexName, record) {
 		const index = this.indexes[indexName];
 		if (!this.indexes[indexName]) {
-			console.error(`Index not defined ${indexName}`);
+			console.error(`Index not defined ${ indexName }`);
 			return;
 		}
 
@@ -424,7 +458,7 @@ class ModelsBaseCache extends EventEmitter {
 			this.insert(data[i]);
 		}
 		console.log(String(data.length), 'records load from', this.collectionName);
-		RocketChat.statsTracker.timing('cache.load', RocketChat.statsTracker.now() - time, [`collection:${this.collectionName}`]);
+		RocketChat.statsTracker.timing('cache.load', RocketChat.statsTracker.now() - time, [`collection:${ this.collectionName }`]);
 
 		this.startSync();
 		this.loaded = true;
@@ -532,8 +566,8 @@ class ModelsBaseCache extends EventEmitter {
 			fieldsToGet.push('_id');
 		}
 
-		let pickFields = (obj, fields) => {
-			let picked = {};
+		const pickFields = (obj, fields) => {
+			const picked = {};
 			fields.forEach((field) => {
 				if (field.indexOf('.') !== -1) {
 					objectPath.set(picked, field, objectPath.get(obj, field));
@@ -569,7 +603,7 @@ class ModelsBaseCache extends EventEmitter {
 		return result;
 	}
 
-	processQuery(query) {
+	processQuery(query, parentField) {
 		if (!query) {
 			return query;
 		}
@@ -580,7 +614,7 @@ class ModelsBaseCache extends EventEmitter {
 			};
 		}
 
-		if (Object.keys(query).length > 1) {
+		if (Object.keys(query).length > 1 && parentField !== '$elemMatch') {
 			const and = [];
 			for (const field in query) {
 				if (query.hasOwnProperty(field)) {
@@ -603,12 +637,12 @@ class ModelsBaseCache extends EventEmitter {
 
 				if (field === '$and' || field === '$or') {
 					query[field] = value.map((subValue) => {
-						return this.processQuery(subValue);
+						return this.processQuery(subValue, field);
 					});
 				}
 
 				if (Match.test(value, Object) && Object.keys(value).length > 0) {
-					query[field] = this.processQuery(value);
+					query[field] = this.processQuery(value, field);
 				}
 			}
 		}
@@ -623,8 +657,11 @@ class ModelsBaseCache extends EventEmitter {
 					query = this.processQuery(query);
 					return this.processQueryOptionsOnResult(this.collection.find(query), options);
 				} catch (e) {
-					console.error('Exception on cache find for', this.collectionName, ...arguments);
+					console.error('Exception on cache find for', this.collectionName);
+					console.error('Query:', JSON.stringify(query, null, 2));
+					console.error('Options:', JSON.stringify(options, null, 2));
 					console.error(e.stack);
+					throw e;
 				}
 			},
 
@@ -634,8 +671,11 @@ class ModelsBaseCache extends EventEmitter {
 					const { limit, skip } = options;
 					return this.processQueryOptionsOnResult(this.collection.find(query), { limit, skip }).length;
 				} catch (e) {
-					console.error('Exception on cache find for', this.collectionName, ...arguments);
+					console.error('Exception on cache find for', this.collectionName);
+					console.error('Query:', JSON.stringify(query, null, 2));
+					console.error('Options:', JSON.stringify(options, null, 2));
 					console.error(e.stack);
+					throw e;
 				}
 			},
 
@@ -661,12 +701,25 @@ class ModelsBaseCache extends EventEmitter {
 	}
 
 	findOne(query, options) {
-		query = this.processQuery(query);
-		return this.processQueryOptionsOnResult(this.collection.findOne(query), options);
+		try {
+			query = this.processQuery(query);
+			return this.processQueryOptionsOnResult(this.collection.findOne(query), options);
+		} catch (e) {
+			console.error('Exception on cache findOne for', this.collectionName);
+			console.error('Query:', JSON.stringify(query, null, 2));
+			console.error('Options:', JSON.stringify(options, null, 2));
+			console.error(e.stack);
+			throw e;
+		}
 	}
 
 	findOneById(_id, options) {
 		return this.findByIndex('_id', _id, options).fetch();
+	}
+
+	findOneByIds(ids, options) {
+		const query = this.processQuery({ _id: { $in: ids }});
+		return this.processQueryOptionsOnResult(this.collection.findOne(query), options);
 	}
 
 	findWhere(query, options) {
@@ -710,6 +763,7 @@ class ModelsBaseCache extends EventEmitter {
 			console.error('Cache.updateDiffById: No record', this.collectionName, id, diff);
 			return;
 		}
+		this.removeFromAllIndexes(record);
 
 		const updatedFields = _.without(Object.keys(diff), ...this.ignoreUpdatedFields);
 
@@ -717,13 +771,14 @@ class ModelsBaseCache extends EventEmitter {
 			this.emit('beforeupdate', record, diff);
 		}
 
-		for (let key in diff) {
+		for (const key in diff) {
 			if (diff.hasOwnProperty(key)) {
 				objectPath.set(record, key, diff[key]);
 			}
 		}
 
 		this.collection.update(record);
+		this.addToAllIndexes(record);
 
 		if (updatedFields.length > 0) {
 			this.emit('updated', record, diff);
@@ -738,6 +793,8 @@ class ModelsBaseCache extends EventEmitter {
 				delete record.$set.usernames;
 			}
 		}
+
+		this.removeFromAllIndexes(record);
 
 		const topLevelFields = Object.keys(update).map(field => field.split('.')[0]);
 		const updatedFields = _.without(topLevelFields, ...this.ignoreUpdatedFields);
@@ -760,7 +817,7 @@ class ModelsBaseCache extends EventEmitter {
 
 		if (update.$min) {
 			_.each(update.$min, (value, field) => {
-				let curValue = objectPath.get(record, field);
+				const curValue = objectPath.get(record, field);
 				if (curValue === undefined || value < curValue) {
 					objectPath.set(record, field, value);
 				}
@@ -769,7 +826,7 @@ class ModelsBaseCache extends EventEmitter {
 
 		if (update.$max) {
 			_.each(update.$max, (value, field) => {
-				let curValue = objectPath.get(record, field);
+				const curValue = objectPath.get(record, field);
 				if (curValue === undefined || value > curValue) {
 					objectPath.set(record, field, value);
 				}
@@ -802,7 +859,7 @@ class ModelsBaseCache extends EventEmitter {
 
 		if (update.$rename) {
 			_.each(update.$rename, (value, field) => {
-				let curValue = objectPath.get(record, field);
+				const curValue = objectPath.get(record, field);
 				if (curValue !== undefined) {
 					objectPath.set(record, value, curValue);
 					objectPath.del(record, field);
@@ -822,7 +879,7 @@ class ModelsBaseCache extends EventEmitter {
 
 		if (update.$pop) {
 			_.each(update.$pop, (value, field) => {
-				let curValue = objectPath.get(record, field);
+				const curValue = objectPath.get(record, field);
 				if (Array.isArray(curValue)) {
 					if (value === -1) {
 						curValue.shift();
@@ -861,6 +918,7 @@ class ModelsBaseCache extends EventEmitter {
 		}
 
 		this.collection.update(record);
+		this.addToAllIndexes(record);
 
 		if (updatedFields.length > 0) {
 			this.emit('updated', record, record);

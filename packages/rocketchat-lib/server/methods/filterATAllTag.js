@@ -7,8 +7,8 @@ RocketChat.callbacks.add('beforeSaveMessage', function(message) {
 		if (!RocketChat.authz.hasPermission(message.u._id, 'mention-all')) {
 
 			// Get the language of the user for the error notification.
-			let language = RocketChat.models.Users.findOneById(message.u._id).language;
-			let action = TAPi18n.__('Notify_all_in_this_room', {}, language);
+			const language = RocketChat.models.Users.findOneById(message.u._id).language;
+			const action = TAPi18n.__('Notify_all_in_this_room', {}, language);
 
 			// Add a notification to the chat, informing the user that this
 			// action is not allowed.
@@ -20,14 +20,10 @@ RocketChat.callbacks.add('beforeSaveMessage', function(message) {
 			});
 
 			// Also throw to stop propagation of 'sendMessage'.
-			throw new Meteor.Error(
-				'error-action-not-allowed',
-				'Notify all in this room not allowed',
-				{
-					method: 'filterATAllTag',
-					action: 'Notify_all_in_this_room'
-				}
-			);
+			throw new Meteor.Error('error-action-not-allowed', 'Notify all in this room not allowed', {
+				method: 'filterATAllTag',
+				action: 'Notify_all_in_this_room'
+			});
 		}
 	}
 

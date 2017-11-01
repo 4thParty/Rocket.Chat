@@ -1,14 +1,13 @@
 /* globals openRoom, LivechatInquiry */
 
 RocketChat.roomTypes.add('l', 5, {
-	template: 'livechat',
-	icon: 'icon-chat-empty',
+	icon: 'livechat',
+	label: 'Livechat',
 	route: {
 		name: 'live',
 		path: '/live/:code(\\d+)',
 		action(params/*, queryParams*/) {
 			openRoom('l', params.code);
-			RocketChat.TabBar.showGroup('livechat', 'search');
 		},
 		link(sub) {
 			return {
@@ -34,13 +33,13 @@ RocketChat.roomTypes.add('l', 5, {
 	},
 
 	canSendMessage(roomId) {
-		let room = ChatRoom.findOne({ _id: roomId }, { fields: { open: 1 } });
+		const room = ChatRoom.findOne({ _id: roomId }, { fields: { open: 1 } });
 		return room && room.open === true;
 	},
 
 	getUserStatus(roomId) {
 		let guestName;
-		const room = Session.get('roomData' + roomId);
+		const room = Session.get(`roomData${ roomId }`);
 
 		if (room) {
 			guestName = room.v && room.v.username;
@@ -50,7 +49,7 @@ RocketChat.roomTypes.add('l', 5, {
 		}
 
 		if (guestName) {
-			return Session.get('user_' + guestName + '_status');
+			return Session.get(`user_${ guestName }_status`);
 		}
 	},
 
