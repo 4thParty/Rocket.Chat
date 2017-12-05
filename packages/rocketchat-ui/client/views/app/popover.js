@@ -1,11 +1,17 @@
 /* globals popover isRtl */
 
+import {UiTextContext} from 'meteor/rocketchat:lib';
+
 this.popover = {
 	renderedPopover: null,
 	open(config) {
 		this.renderedPopover = Blaze.renderWithData(Template.popover, config, document.body);
 	},
 	close() {
+		if (!this.renderedPopover) {
+			return false;
+		}
+
 		Blaze.remove(this.renderedPopover);
 
 		const activeElement = this.renderedPopover.dataVar.curValue.activeElement;
@@ -81,10 +87,13 @@ Template.popover.onRendered(function() {
 
 Template.popover.events({
 	'click [data-type="messagebox-action"]'(event, t) {
-		const action = RocketChat.messageBox.actions.getById(event.currentTarget.dataset.id);
+		const id = event.currentTarget.dataset.id;
+		const action = RocketChat.messageBox.actions.getById(id);
 		if ((action[0] != null ? action[0].action : undefined) != null) {
 			action[0].action({rid: t.data.data.rid, messageBox: document.querySelector('.rc-message-box'), element: event.currentTarget, event});
-			popover.close();
+			if (id !== 'audio-message') {
+				popover.close();
+			}
 		}
 	},
 	'click [data-type="message-action"]'(e, t) {
@@ -176,13 +185,7 @@ Template.popover.events({
 		const { rid, name, template } = instance.data.data;
 
 		if (e.currentTarget.dataset.id === 'hide') {
-			let warnText;
-			switch (template) {
-				case 'c': warnText = 'Hide_Room_Warning'; break;
-				case 'p': warnText = 'Hide_Group_Warning'; break;
-				case 'd': warnText = 'Hide_Private_Warning'; break;
-				case 'l': warnText = 'Hide_Livechat_Warning'; break;
-			}
+			const warnText = RocketChat.roomTypes.roomTypes[template].getUiText(UiTextContext.HIDE_WARNING);
 
 			return swal({
 				title: t('Are_you_sure'),
@@ -208,17 +211,11 @@ Template.popover.events({
 				});
 			});
 		} else {
-			let warnText;
-			switch (template) {
-				case 'c': warnText = 'Leave_Room_Warning'; break;
-				case 'p': warnText = 'Leave_Group_Warning'; break;
-				case 'd': warnText = 'Leave_Private_Warning'; break;
-				case 'l': warnText = 'Hide_Livechat_Warning'; break;
-			}
+			const warnText = RocketChat.roomTypes.roomTypes[template].getUiText(UiTextContext.LEAVE_WARNING);
 
 			swal({
 				title: t('Are_you_sure'),
-				text: t(warnText, name),
+				text: warnText ? t(warnText, name) : '',
 				type: 'warning',
 				showCancelButton: true,
 				confirmButtonColor: '#DD6B55',
