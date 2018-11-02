@@ -142,10 +142,6 @@ input:focus {
 	&.popout {
 		border-top-right-radius: 0;
 		border-top-left-radius: 0;
-
-		.title {
-			cursor: default;
-		}
 	}
 
 	.title {
@@ -155,8 +151,9 @@ input:focus {
 		border-top-left-radius: inherit;
 		color: #ffffff;
 		z-index: 10;
-		cursor: pointer;
 		padding: 0 10px;
+		user-select: none;
+		cursor: move;
 
 		h1 {
 			margin: 0;
@@ -918,6 +915,7 @@ input:focus {
 	.livechat-room {
 		.title {
 			height: 100%;
+			cursor: pointer;
 		}
 
 		.footer {
