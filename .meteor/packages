@@ -3,6 +3,7 @@
 # 'meteor add' and 'meteor remove' will edit this file for you,
 # but you can also edit it by hand.
 
+rocketchat:mongo-config
 rocketchat:cors
 
 accounts-facebook@1.3.2
@@ -186,7 +187,6 @@ rocketchat:push
 raix:ui-dropped-event
 steffo:meteor-accounts-saml
 todda00:friendly-slugs
-yasaricli:slugify
 yasinuslu:blaze-meta
 rocketchat:e2e
 
