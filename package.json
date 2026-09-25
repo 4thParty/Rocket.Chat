@@ -177,7 +177,7 @@
 		"he": "^1.2.0",
 		"highlight.js": "^9.13.1",
 		"iconv-lite": "^0.4.24",
-		"image-size": "^0.6.3",
+		"image-size": "^2.0.4",
 		"imap": "^0.8.19",
 		"ip-range-check": "^0.0.2",
 		"jquery": "^3.3.1",
