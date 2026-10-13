@@ -100,7 +100,7 @@
 		"babel-plugin-array-includes": "^2.0.3",
 		"chai": "^3.5.0",
 		"chai-datetime": "^1.5.0",
-		"chimp": "^0.51.1",
+		"chimp": "^6.2.0",
 		"emojione-assets": "^4.5.0",
 		"eslint": "^5.9.0",
 		"fast-glob": "^2.2.6",
@@ -126,9 +126,9 @@
 		"webpack": "^4.29.3"
 	},
 	"dependencies": {
-		"@accounts/graphql-api": "^0.2.3",
+		"@accounts/graphql-api": "^0.33.2",
 		"@accounts/mongo": "0.0.12",
-		"@accounts/server": "0.0.18",
+		"@accounts/server": "0.33.1",
 		"@babel/runtime": "^7.2.0",
 		"@google-cloud/language": "^2.0.0",
 		"@google-cloud/storage": "^2.3.1",
